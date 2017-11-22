@@ -1,8 +1,3 @@
-module pwm(clk, resetn, mot_rpm, mot_pwm)
-input clk, resetn
-input [15:0] mot_rpm;
-output mot_pwm;
-
 // converrt 16 bit rpm value to a duty cycle
 // duty cycle is a count from 0 to 90
 // This is a 4kHz PWM
@@ -19,4 +14,30 @@ output mot_pwm;
 // for a 0 to 90 DC, system clock should be operating around 400kHz
 // if we want to divide the 4kHz into 100 counts
 // hmm
+module pwm(clk, resetn, set, mot_rpm, mot_pwm);
+    parameter type RPM_TYPE = logic [6:0];
+    localparam PERIOD_BIT_COUNT = $bits(RPM_TYPE);
+	
+	
+    input logic clk, resetn, set;
+    input RPM_TYPE mot_rpm;
+    output logic mot_pwm;
+
+    logic [PERIOD_BIT_COUNT - 1 : 0] pwmCount, setDutyCycle;
+
+    always_ff @(posedge clk) begin
+        if(~resetn) begin
+            pwmCount <= '0;
+            setDutyCycle <= '0;
+        end else begin
+            if(set) begin //Set resets the PWM cycle
+				setDutyCycle <= mot_rpm;
+				pwmCount <= '0;
+			end else begin
+				pwmCount <= pwmCount + 1; //Relying on overflow behavior to reset back to 0
+			end
+        end
+    end
+    
+    assign mot_pwm = (pwmCount < setDutyCycle);
 endmodule
