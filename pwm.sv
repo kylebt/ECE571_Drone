@@ -14,24 +14,20 @@
 // for a 0 to 90 DC, system clock should be operating around 400kHz
 // if we want to divide the 4kHz into 100 counts
 // hmm
-module pwm(clk, resetn, set, mot_rpm, mot_pwm);
-    parameter type RPM_TYPE = logic [6:0];
-    localparam PERIOD_BIT_COUNT = $bits(RPM_TYPE);
+module pwm(pwm_if interf);
+    
+    localparam PERIOD_BIT_COUNT = $bits(interf.mot_rpm);
 	
-	
-    input logic clk, resetn, set;
-    input RPM_TYPE mot_rpm;
-    output logic mot_pwm;
 
     logic [PERIOD_BIT_COUNT - 1 : 0] pwmCount, setDutyCycle;
 
-    always_ff @(posedge clk) begin
-        if(~resetn) begin
+    always_ff @(posedge interf.clk) begin
+        if(~interf.resetn) begin
             pwmCount <= '0;
             setDutyCycle <= '0;
         end else begin
-            if(set) begin //Set resets the PWM cycle
-				setDutyCycle <= mot_rpm;
+            if(interf.set) begin //Set resets the PWM cycle
+				setDutyCycle <= interf.mot_rpm;
 				pwmCount <= '0;
 			end else begin
 				pwmCount <= pwmCount + 1; //Relying on overflow behavior to reset back to 0
@@ -39,5 +35,5 @@ module pwm(clk, resetn, set, mot_rpm, mot_pwm);
         end
     end
     
-    assign mot_pwm = (pwmCount < setDutyCycle);
+    assign interf.mot_pwm = (pwmCount < setDutyCycle);
 endmodule

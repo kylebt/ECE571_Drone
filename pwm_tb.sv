@@ -14,11 +14,12 @@ initial begin
 forever #HALF_CLOCK clk = ~clk;
 end
 
-localparam PwmCountBits = 7;
+localparam PwmCountBits = $bits(RPM_TYPE);
 
-pwm #(.RPM_TYPE(RPM_TYPE)) pwm1(.clk, .resetn, .set, .mot_rpm, .mot_pwm);
+pwm_if #(.RPM_TYPE(RPM_TYPE)) interf(.clk, .resetn);
+pwm  pwm1(interf);
 
-logic [PwmCountBits : 0] currentPwmCount = '0;
+RPM_TYPE currentPwmCount = '0;
 
 int totalTests = 0;
 int failedTests = 0;
@@ -29,15 +30,8 @@ initial begin
 $display("Starting PWM Tests");
 
 for(int i = 0; i < 2 ** PwmCountBits; i++) begin
-	mot_rpm = i;
-	set = '1;
-	currentPwmCount = '0;
-	for(int j = 0; j < 2 ** PwmCountBits; j++) begin
-		@(posedge clk);
-		set = '0;
-		if(mot_pwm) currentPwmCount++;
-	end
-	assert(currentPwmCount == mot_rpm)
+	interf.do_test(i, currentPwmCount);
+	assert(currentPwmCount == i)
 	else begin
 		$error("Expected PWM count (%d), actual (%d)", i, currentPwmCount);
 		failedTests++;
