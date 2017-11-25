@@ -3,7 +3,8 @@
 // Top level HDL - Intantiates DUT, IF, BFM and generates clock and resets. Runs on the emulator. 
 // The pragma below specifies that this module is an xrtl module 
 
-module pwm_top_hdl; //pragma attribute top_hdl parition_module_xrtl 
+module pwm_top_hdl;
+//pragma attribute pwm_top_hdl parition_module_xrtl 
 
 bit clk, resetn;
 

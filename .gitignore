@@ -4,3 +4,14 @@
 *.wlf
 work/
 transcript
+edsenv
+modelsim.ini
+tbxbindings.h
+transcript*
+velrunopts.ini
+work.*
+veloce.log/
+veloce.map
+veloce.med/
+veloce.wave/
+
