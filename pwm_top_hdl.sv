@@ -3,15 +3,15 @@
 // Top level HDL - Intantiates DUT, IF, BFM and generates clock and resets. Runs on the emulator. 
 // The pragma below specifies that this module is an xrtl module 
 
-module top_hdl; //pragma attribute top_hdl parition_module_xrtl 
+module pwm_top_hdl; //pragma attribute top_hdl parition_module_xrtl 
 
-bit clk, reset;
+bit clk, resetn;
 
 //Intantiate Interface+BFM
-booth_if booth_port(clk, reset);
+pwm_if interf(.clk, .resetn);
 
 //Intantiate DUT 
-booth_fsm DUT(.booth_port(booth_port));
+pwm DUT(.interf(interf));
 
 
 // Free running clock
@@ -20,7 +20,7 @@ initial
   begin
     clk = 0;
     forever begin
-      #10 clk = ~clk;
+      #5 clk = ~clk;
     end
   end
 
@@ -28,8 +28,8 @@ initial
 // tbx clkgen
 initial
   begin
-    reset = 1;
-    #50 reset = 0;
+    resetn = 0;
+    #20 resetn = 1;
   end
 
-endmodule: top_hdl
+endmodule: pwm_top_hdl

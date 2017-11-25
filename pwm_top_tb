@@ -1,0 +1,55 @@
+// Sameer Ghewari, Portland State University, Feb 2015 
+
+// TBX PWM Example - testing a PWM signal generator
+// This is the HVL testbench. Runs on the workstation. This is a very straightforward directed
+// testbench and does not include better way of test case generation. You could use SV classes
+// and constrained random test case generation to develop test cases 
+
+class stimulus; 
+
+virtual pwm_if pwm_vif;
+
+
+function void set_vif (virtual pwm_if pwm_vif);
+	this.pwm_vif = pwm_vif; 
+endfunction
+
+task run;
+	int totalTasks = 0, totalTests = 0;
+
+	$display("HVL:%0t", $time, "Waiting for reset");
+	pwm_vif.wait_for_reset();
+	$display("HVL:%0t", $time, "System is out of reset");
+	
+	$display("Starting Tests");
+	
+	int currentPwmCount = 0;
+	for(int i = 0; i < 2 ** $bits(this.pwm_vif.mot_rpm); i++) begin
+		interf.do_test(i, currentPwmCount);
+		assert(currentPwmCount == i)
+		else begin
+			$error("Expected PWM count (%d), actual (%d)", i, currentPwmCount);
+			failedTests++;
+		end
+		totalTests++;
+	end
+	$display("Finished PWM Tests. Total fails: %d, total tests: %d", failedTests, totalTests);
+endtask 
+
+endclass; 
+
+
+module pwm_top_tb;
+stimulus inst; 
+
+initial
+  begin	
+  
+	inst = new;
+	inst.set_vif(top_hdl.booth_port);
+	inst.run();
+	$stop;
+
+  end
+
+endmodule: top_tb
