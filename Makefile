@@ -28,19 +28,18 @@ build:
 	vlog $(ALL_FILES)
 	echo "Mode is $(MODE)"
 	
-ifeq ($(MODE),puresim)		#If mode is puresim, compile everything else
-	velhvl -sim $(MODE)
-else  						#else, synthesize!
+ifeq ($(MODE),veloce)		#If mode is puresim, compile everything else						#else, synthesize!
 	velanalyze -extract_hvl_info +define+QUESTA $(SIM_TOP_TB_FILE)	#Analyze the HVL for external task calls in BFM 
 	velanalyze pwm_if.sv
 	velanalyze $(SIM_TOP_HDL_FILE)		#Analyze the HDL top for synthesis 
 	velanalyze pwm.sv
 	velcomp -top $(SIM_TOP_HDL)  	#Synthesize!
-	velhvl -sim $(MODE) 
 endif
 
+	velhvl -sim $(MODE)
+
 run:
-	vsim -c -do "run -all" $(SIM_TOP_TB) $(SIM_TOP_HDL)	#Run all 
+	vsim -c -do "run -all; quit" $(SIM_TOP_TB) $(SIM_TOP_HDL)	#Run all 
 	cp transcript transcript.$(MODE)		#Record transcript 
 
 norun:	#No run lets you control stepping etc. 
