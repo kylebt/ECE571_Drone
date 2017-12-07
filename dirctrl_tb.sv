@@ -17,7 +17,7 @@ end
   logic [15:0] expected_value_left_frwd;
   logic [15:0] expected_value_right_back;
  }expected_value;
-function logic[15:0] TwosComp(input logic [15:0] value);
+function automatic logic[15:0] TwosComp(input logic [15:0] value);
      TwosComp = ~value + 16'b1;
      
      //return ~value + 16'b1;
@@ -43,19 +43,21 @@ initial begin
 	
 	$display("*******Starting test********");
 	
-	for (int i = 0 ; i < 8 ; i++) begin
-	cmds = i ;
-	
-	//#CLOCK_PER;
-	@(posedge clk)
-	assert(left_frwd === resultlookuptable[cmds].expected_value_left_frwd)
-	$display("command %d gave correct result for left forward",i);
-	else 
-	$display ("The expected  left_frwd value is %d , actual left_frwd value is %d ", resultlookuptable [cmds].expected_value_left_frwd , left_frwd);
-	assert(right_back === resultlookuptable[cmds].expected_value_right_back)
-    $display("command %d gave correct result for right back",i);
-    else 
-    $display ("The expected  right value is %d , actual right_back value is %d ", resultlookuptable [cmds].expected_value_right_back , right_back);
+	for (int i = 0; i < 8; i++) begin
+		cmds = i;
+		
+		//#CLOCK_PER;
+		@(posedge clk);
+		@(posedge clk); //TODO: Remove this second clock once the race condition is resolved (using program should fix it)
+		
+		assert(left_frwd === resultlookuptable[cmds].expected_value_left_frwd)
+			$display("command %d gave correct result for left forward",i);
+		else 
+			$display ("The expected  left_frwd value is %d , actual left_frwd value is %d ", resultlookuptable[cmds].expected_value_left_frwd, left_frwd);
+		assert(right_back === resultlookuptable[cmds].expected_value_right_back)
+			$display("command %d gave correct result for right back",i);
+		else 
+			$display ("The expected  right value is %d , actual right_back value is %d ", resultlookuptable[cmds].expected_value_right_back, right_back);
 
 	end
 
