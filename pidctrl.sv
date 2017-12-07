@@ -1,8 +1,42 @@
-module pidctrl(clk, resetn, rpm_set, rpm_sense, mot_rpm );
+module pidctrl(clk, resetn, rpm_set, rpm_sense, mot_set );
 input clk, resetn;
-input [15:0] rpm_set, rpm_sense;
-output [15:0] mot_rpm;
+input shortint rpm_set, rpm_sense;
+output mot_set;
 
-// subtract rpm_sense from  from rpm_set--> rpm_err
-// apply compensator algorithm to rpm_err to get mot_rpm
+// rpm_sense is the motor rpm feed back to the controller
+// rpm_set is the desired motor rpm from the directional controller
+//  motor_set should NOT be confused with the motor rpm, motor_set is the drive (reference) to the motor to reach the desired rpm
+// for this model, the motor is assumed to contain the necessary mechanism (e.g. a PWM) to maintain the motor rpm
+ 
+// et -> error from rpm_set-rpm_sense -> input
+//  xt -> output
+
+// signed subtract: rpm_sense from  from rpm_set--> err[0]
+// apply compensator algorithm to err[0] to get mot_set xt[0]
+// mot_set drives the motor to the rpm_set rpm. 
+
+wire [15:0] mot_set;
+
+reg signed [15:0] err [1:0];	// (0) -> current error, (1) -> previous error
+reg signed [15:0] xt [1:0];	// (0) -> current motor set, (1) -> previous motor set
+
+
+always_ff@(posedge clk) begin
+	if(!resetn) begin
+		err[0] <= 16'h0000;
+		err[1] <= 16'h0000;
+		xt[0] <= 16'h0000; 
+		xt[1] <= 16'h0000; 
+	end
+	else begin
+		err[1] = err[0];
+		err[0] = rpm_set-rpm_sense;
+		xt[1] = xt[0]>>>2;
+		xt[0] = err[1] + xt[1];
+	end
+			
+end
+
+assign	mot_set = xt[0];
+
 endmodule
