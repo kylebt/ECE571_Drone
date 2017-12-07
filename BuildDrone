@@ -3,7 +3,7 @@
 SV_EXT=".sv"
 
 #Variables to update when adding files to project:
-SRCS="pwm_if.sv pwm.sv"
+SRCS="altctrl.sv dirctrl.sv rpmctrl.sv pidctrl.sv dronetop.sv pwm_if.sv pwm.sv clock_divider.sv"
 SIM_TOP_TB="pwm_top_tb"
 SIM_TOP_HDL="pwm_top_hdl"
 
@@ -12,7 +12,7 @@ SIM_TOP_TB_FILE="${SIM_TOP_TB}${SV_EXT}"
 SIM_TOP_HDL_FILE="${SIM_TOP_HDL}${SV_EXT}"
 
 VEL_ANALYZE_FILES=("${SRCS} ${SIM_TOP_HDL_FILE}")
-ALL_FILES=("${SRCS} ${SIM_TOP_HDL_FILE} ${SIM_TOP_TB_FILE}")
+ALL_FILES=(*.sv)
 
 #Variables for command line args
 DO_WORK_LIB_MAP=0
@@ -100,6 +100,8 @@ echo "Configuration:" >&2
 echo "    Top TB File:  ${SIM_TOP_TB_FILE}" >&2
 echo "    Top HDL File: ${SIM_TOP_HDL_FILE}" >&2
 echo "    Source files: ${SRCS}" >&2
+echo "    All files:    ${ALL_FILES[@]}" >&2
+echo "    Analyze:      ${VEL_ANALYZE_FILES[@]}" >&2
 
 #CLEAN STEP
 if [ $DO_CLEAN -eq 1 ]; then
@@ -113,12 +115,12 @@ if [ $DO_WORK_LIB_MAP -eq 1 ]; then
 fi
 if [ $DO_BUILD -eq 1 ]; then
     echo "Building project" >&2
-    for file in $ALL_FILES; do
+    for file in "${ALL_FILES[@]}"; do
         echo "    vlog ${file}" >&2
         vlog $file
     done
     if [ "$MODE" == "veloce" ]; then
-        for file in $VEL_ANALYZE_FILES; do
+        for file in "${VEL_ANALYZE_FILES[@]}"; do
             echo "     Analyzing ${file}" >&2
             velanalyze $file
         done

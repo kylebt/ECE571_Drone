@@ -10,7 +10,7 @@ module clock_divider(input logic clk, input logic resetn, output logic derivedCl
 	
 	logic [7:0] dividerCount;
 	
-	always_ff @(edge clk) begin
+	always_ff @(posedge clk, negedge clk) begin
 		if(~resetn) begin
 			dividerCount <= '0;
 			derivedClock <= clk;
