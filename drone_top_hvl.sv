@@ -18,8 +18,8 @@ typedef struct {
 
 class stimulus;
 
-const logic signed [15:0] UPPER_WINDOW_LIMIT = 10; //Output needs to settle within plus or minus this RPM
-const logic signed [15:0] LOWER_WINDOW_LIMIT = -10;
+const logic signed [15:0] WINDOW = 10; //Output needs to settle within plus or minus this RPM
+
 virtual drone_top_if drone_top_vif;
 
 function void set_vif (virtual drone_top_if drone_top_vif);
@@ -27,17 +27,72 @@ function void set_vif (virtual drone_top_if drone_top_vif);
 endfunction
 
 task calcExpectedRpmSense(ref test_t test);
+	shortint left, right, forward, backward;
+	shortint speedLR, speedFB;
+	unique case(test.altcmd) //See altctrl module
+		3'b000: {left,right,forward,backward} = {4{16'd3000}};
+		3'b001: {left,right,forward,backward} = {4{16'd3300}};
+		3'b010: {left,right,forward,backward} = {4{16'd3600}};
+		3'b011: {left,right,forward,backward} = {4{16'd3900}};
+		3'b100: {left,right,forward,backward} = {4{16'd3000}};
+		3'b101: {left,right,forward,backward} = {4{16'd2700}};
+		3'b110: {left,right,forward,backward} = {4{16'd2400}};
+		3'b111: {left,right,forward,backward} = {4{16'd2100}};
+	endcase
+	
+	unique case(test.dircmd[0][1:0]) //See dirctrl module
+		2'b00: speedLR = 0;
+		2'b01: speedLR = 102;
+		2'b10: speedLR = 218;
+		2'b11: speedLR = 402;
+	endcase
+	if(test.dircmd[0][2]) begin
+		left = left + speedLR;
+		right = right - speedLR;
+	end else begin
+		left = left - speedLR;
+		right = right + speedLR;
+	end
+	
+	unique case(test.dircmd[1][1:0]) //See dirctrl module
+		2'b00: speedFB = 0;
+		2'b01: speedFB = 102;
+		2'b10: speedFB = 218;
+		2'b11: speedFB = 402;
+	endcase
+	if(test.dircmd[1][2]) begin
+		forward = forward + speedFB;
+		backward = backward - speedFB;
+	end else begin
+		forward = forward - speedFB;
+		backward = backward + speedFB;
+	end
+	
+	test.exp_rpm_sense[0] = left;
+	test.exp_rpm_sense[1] = right;
+	test.exp_rpm_sense[2] = forward;
+	test.exp_rpm_sense[3] = backward;
+	$display("Left: %d, right: %d, forward: %d, backward: %d", test.exp_rpm_sense[0], test.exp_rpm_sense[1], test.exp_rpm_sense[2], test.exp_rpm_sense[3]);
 endtask
 
 task generateNormalTestCases(ref test_t tests[$]);
+	test_t test;
 	for(int i = 0; i < 8; i++) begin
 		for(int j = 0; j < 8; j++) begin
 			for(int k = 0; k < 8; k++) begin
-				tests.push_back('{i[2:0], {j[2:0], k[2:0]}, {16'b0, 16'b0, 16'b0, 16'b0}, {16'h0, 16'h0, 16'h0, 16'h0}, {16'b0, 16'b0, 16'b0, 16'b0}, {16'b0, 16'b0, 16'b0, 16'b0}});
+				test.altcmd = i[2:0];
+				test.dircmd[0] = j[2:0];
+				test.dircmd[1] = k[2:0];
+				test.rpm_sense_set = {4{16'b0}}; //No sense measurement spikes
+				calcExpectedRpmSense(test);
+				test.mot_set = {4{16'b0}};
+				test.rpm_sense = {4{16'b0}};
+				tests.push_back(test);
+				//tests.push_back('{i[2:0], {k[2:0], j[2:0]}, {16'b0, 16'b0, 16'b0, 16'b0}, {16'h0, 16'h0, 16'h0, 16'h0}, {16'b0, 16'b0, 16'b0, 16'b0}, {16'b0, 16'b0, 16'b0, 16'b0}});
 			end
 		end
 	end
-				//Given the motor_feedback module, the expected mot_set value is always zero.
+	//Given the motor_feedback & pidctrl modules, the expected mot_set value is always zero.
 	//This is because motor_feedback will eventually cause rpm_sense to converge to the desired RPM,
 	//which causes the pidctrl module output to converge to 0.
 	
@@ -45,6 +100,10 @@ task generateNormalTestCases(ref test_t tests[$]);
 	//that's what the mathematical model tells us.
 	//tests.push_back('{3'b000, {3'b000, 3'b000}, {16'b0, 16'b0, 16'b0, 16'b0}, {16'h0, 16'h0, 16'h0, 16'h0}, {16'b0, 16'b0, 16'b0, 16'b0}});
 	
+	//This doesn't make total sense... I think the output rpm term should be something like desired + mot_set.
+	//I think we've got the derivative of what we need. However, the point of this project is to demonstrate
+	//SystemVerilog concepts and get a design running on the emulator, not specifically to make an accurate
+	//drone control module. So, we're going to leave it as-is and change the meaning of that output.
 endtask
 
 task run;
@@ -71,8 +130,20 @@ task run;
 		drone_top_vif.do_test(test.altcmd, test.dircmd, test.rpm_sense_set, test.mot_set, test.rpm_sense);
 		failedCurrentTest = 0;
 		for(int j = 0; j < 4; j++) begin
-			if(($signed(test.mot_set[j]) > $signed(UPPER_WINDOW_LIMIT)) || ($signed(test.mot_set[j]) < $signed(LOWER_WINDOW_LIMIT))) begin
-				$error("Test %d: Motor [%d] failed to settle. RPM=%h, %h < Expected < %h", i, j, test.mot_set[j], LOWER_WINDOW_LIMIT, UPPER_WINDOW_LIMIT);
+			//mot_set is expected to converge to 0 if the system is stable
+			if(($signed(test.mot_set[j]) > WINDOW) || ($signed(test.mot_set[j]) < -WINDOW)) begin
+				$error("Test %d: Motor [%d] failed to settle. RPM=%d, %d < Expected < %d", i, j, $signed(test.mot_set[j]), -WINDOW, WINDOW);
+				failedCurrentTest = 1;
+			end
+			//rpm_sense is expected to converge to the target RPM if stable and feedback works
+			if(($signed(test.rpm_sense[j]) > $signed(test.exp_rpm_sense[j]) + WINDOW) ||
+						($signed(test.rpm_sense[j]) < $signed(test.exp_rpm_sense[j]) - WINDOW))
+			begin
+				$error("Test %d: Motor [%d] failed to reach expected RPM. RPM=%d, %d < Expected < %d", 
+							i, j, $signed(test.rpm_sense[j]),
+							($signed(test.exp_rpm_sense[j]) - WINDOW),
+							($signed(test.exp_rpm_sense[j]) + WINDOW));
+				$display("%d", $signed(test.exp_rpm_sense[j]));
 				failedCurrentTest = 1;
 			end
 		end

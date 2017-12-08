@@ -41,7 +41,7 @@ interface drone_top_if(input logic clk, resetn);
 		set <= 1'b0;
 		
 		//At this point, the feedback loop is closed. The test is now running
-		repeat(50) @(posedge clk); //Wait 50 clock cycles for output to stabilize
+		repeat(100) @(posedge clk); //Wait 50 clock cycles for output to stabilize
 		motor_set = {>>{mot_set}};
 		revpm_sense = {>>{rpm_sense}};
 	endtask
