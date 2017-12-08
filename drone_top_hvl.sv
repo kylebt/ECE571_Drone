@@ -10,9 +10,10 @@
 typedef struct {
 	logic [2:0] altcmd;
 	logic [1:0][2:0] dircmd;
-	logic signed [3:0][15:0] rpm_sense;
-	logic signed [3:0][15:0] exp_mot_set;
+	logic signed [3:0][15:0] rpm_sense_set;
+	logic signed [3:0][15:0] exp_rpm_sense;
 	logic signed [3:0][15:0] mot_set;
+	logic signed [3:0][15:0] rpm_sense;
 } test_t;
 
 class stimulus;
@@ -25,14 +26,24 @@ function void set_vif (virtual drone_top_if drone_top_vif);
 	this.drone_top_vif = drone_top_vif; 
 endfunction
 
+task calcExpectedRpmSense(ref test_t test);
+endtask
+
 task generateNormalTestCases(ref test_t tests[$]);
-	//Given the motor_feedback module, the expected mot_set value is always zero.
+	for(int i = 0; i < 8; i++) begin
+		for(int j = 0; j < 8; j++) begin
+			for(int k = 0; k < 8; k++) begin
+				tests.push_back('{i[2:0], {j[2:0], k[2:0]}, {16'b0, 16'b0, 16'b0, 16'b0}, {16'h0, 16'h0, 16'h0, 16'h0}, {16'b0, 16'b0, 16'b0, 16'b0}, {16'b0, 16'b0, 16'b0, 16'b0}});
+			end
+		end
+	end
+				//Given the motor_feedback module, the expected mot_set value is always zero.
 	//This is because motor_feedback will eventually cause rpm_sense to converge to the desired RPM,
 	//which causes the pidctrl module output to converge to 0.
 	
 	//This would not be true for other feedback models. We're going with this assumption though because
 	//that's what the mathematical model tells us.
-	tests.push_back('{3'b000, {3'b000, 3'b000}, {16'b0, 16'b0, 16'b0, 16'b0}, {16'h0, 16'h0, 16'h0, 16'h0}, {16'b0, 16'b0, 16'b0, 16'b0}});
+	//tests.push_back('{3'b000, {3'b000, 3'b000}, {16'b0, 16'b0, 16'b0, 16'b0}, {16'h0, 16'h0, 16'h0, 16'h0}, {16'b0, 16'b0, 16'b0, 16'b0}});
 	
 endtask
 
@@ -43,6 +54,7 @@ task run;
 	test_t testsToRun[$] = {};
 	test_t test;
 	bit failedCurrentTest = 0;
+	int testVectorSize = 0;
 
 	$display("HVL:%0t Waiting for reset", $time);
 	drone_top_vif.wait_for_reset();
@@ -52,10 +64,11 @@ task run;
 	
 	generateNormalTestCases(testsToRun);
 	
-	for(int i = 0; i < testsToRun.size(); i++) begin
+	testVectorSize = testsToRun.size();
+	for(int i = 0; i < testVectorSize; i++) begin
 		test = testsToRun.pop_front();
 		$display("Testing altcmd=%b, dircmd[0]=%b, dircmd[1]=%b", test.altcmd, test.dircmd[0], test.dircmd[1]);
-		drone_top_vif.do_test(test.altcmd, test.dircmd, test.rpm_sense, test.mot_set);
+		drone_top_vif.do_test(test.altcmd, test.dircmd, test.rpm_sense_set, test.mot_set, test.rpm_sense);
 		failedCurrentTest = 0;
 		for(int j = 0; j < 4; j++) begin
 			if(($signed(test.mot_set[j]) > $signed(UPPER_WINDOW_LIMIT)) || ($signed(test.mot_set[j]) < $signed(LOWER_WINDOW_LIMIT))) begin

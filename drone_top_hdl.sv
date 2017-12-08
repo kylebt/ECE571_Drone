@@ -10,8 +10,6 @@ module drone_top_hdl;
 
 bit clk, resetn;
 
-logic signed [15:0] rpm_sense [3:0];
-
 //Intantiate Interface+BFM
 drone_top_if interf(.clk, .resetn);
 
@@ -20,7 +18,7 @@ dronetop DUT(.clk(clk),
 				.resetn(resetn),
 				.altcmd(interf.altcmd),
 				.dircmd(interf.dircmd),
-				.rpm_sense(rpm_sense),
+				.rpm_sense(interf.rpm_sense),
 				.mot_set(interf.mot_set));
 				
 
@@ -30,9 +28,9 @@ generate
 		motor_feedback mf(.clk,
 							.resetn,
 							.set(interf.set),
-							.rpm_set(interf.rpm_set[mf_index]),
+							.rpm_set(interf.rpm_sense_set[mf_index]),
 							.mot_rpm(interf.mot_set[mf_index]),
-							.rpm_sense(rpm_sense[mf_index]));
+							.rpm_sense(interf.rpm_sense[mf_index]));
 	end
 endgenerate
 
