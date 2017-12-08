@@ -1,17 +1,12 @@
 module dirctrl(clk, resetn, cmds, left_frwd,right_back);
-	input clk, resetn;
-	input [2:0] cmds;
+	input logic clk, resetn;
+	input logic [2:0] cmds;
 	output logic [15:0] left_frwd, right_back;
 	
-	typedef enum {STOP, SLOW, MEDIUM, FAST} speed_t;
-
-	logic [15:0] speedLookupTable[speed_t] = 
-		'{
-			STOP :		16'd0,		//No change in direction
-			SLOW : 		16'd102,	//3000 * (1 - cos(15))   15 degree tilt	
-			MEDIUM : 	16'd218,	//3000 * (1 - cos(22.5)) 22.5 degree tilt
-			FAST :		16'd402		//3000 * (1 - cos(30))   30 degree tilt
-		};
+	const logic [15:0] STOP = 16'd0;
+	const logic [15:0] SLOW = 16'd102;
+	const logic [15:0] MEDIUM = 16'd218;
+	const logic [15:0] FAST = 16'd402;
 
 	function automatic logic [15:0] TwosComp(input logic [15:0] value);
 		TwosComp = ~value + 16'b1;	
@@ -21,16 +16,17 @@ module dirctrl(clk, resetn, cmds, left_frwd,right_back);
 		if(~resetn) begin
 			left_frwd <= '0;
 			right_back <= '0;
-		end else begin 
+		end else begin
+			dirctrl1: assert(!$isunknown(cmds)) else $error("cmds=%b", cmds);
 			unique case (cmds)
-				3'b000 : {left_frwd,right_back} <= {TwosComp(speedLookupTable[STOP]), speedLookupTable[STOP]};
-				3'b001 : {left_frwd,right_back} <= {TwosComp(speedLookupTable[SLOW]), speedLookupTable[SLOW]};
-				3'b010 : {left_frwd,right_back} <= {TwosComp(speedLookupTable[MEDIUM]), speedLookupTable[MEDIUM]};
-				3'b011 : {left_frwd,right_back} <= {TwosComp(speedLookupTable[FAST]), speedLookupTable[FAST]};
-				3'b100 : {left_frwd,right_back} <= {speedLookupTable[STOP], TwosComp(speedLookupTable[STOP])};
-				3'b101 : {left_frwd,right_back} <= {speedLookupTable[SLOW], TwosComp(speedLookupTable[SLOW])};
-				3'b110 : {left_frwd,right_back} <= {speedLookupTable[MEDIUM], TwosComp(speedLookupTable[MEDIUM])};
-				3'b111 : {left_frwd,right_back} <= {speedLookupTable[FAST], TwosComp(speedLookupTable[FAST])};
+				3'b000 : {left_frwd,right_back} <= {TwosComp(STOP), STOP};
+				3'b001 : {left_frwd,right_back} <= {TwosComp(SLOW), SLOW};
+				3'b010 : {left_frwd,right_back} <= {TwosComp(MEDIUM), MEDIUM};
+				3'b011 : {left_frwd,right_back} <= {TwosComp(FAST), FAST};
+				3'b100 : {left_frwd,right_back} <= {STOP, TwosComp(STOP)};
+				3'b101 : {left_frwd,right_back} <= {SLOW, TwosComp(SLOW)};
+				3'b110 : {left_frwd,right_back} <= {MEDIUM, TwosComp(MEDIUM)};
+				3'b111 : {left_frwd,right_back} <= {FAST, TwosComp(FAST)};
 			endcase
 		end
 	end

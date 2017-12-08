@@ -3,9 +3,11 @@
 SV_EXT=".sv"
 
 #Variables to update when adding files to project:
-SRCS="altctrl.sv dirctrl.sv rpmctrl.sv pidctrl.sv dronetop.sv pwm_if.sv pwm.sv clock_divider.sv"
-SIM_TOP_TB="pwm_top_tb"
-SIM_TOP_HDL="pwm_top_hdl"
+SRCS="altctrl.sv dirctrl.sv rpmctrl.sv pidctrl.sv dronetop.sv pwm_if.sv pwm.sv clock_divider.sv motor_feedback.sv drone_top_if.sv"
+#SIM_TOP_TB="pwm_top_tb"
+#SIM_TOP_HDL="pwm_top_hdl"
+SIM_TOP_TB="drone_top_hvl"
+SIM_TOP_HDL="drone_top_hdl"
 
 #Intermediate variables used in this script:
 SIM_TOP_TB_FILE="${SIM_TOP_TB}${SV_EXT}"

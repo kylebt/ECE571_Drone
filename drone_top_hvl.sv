@@ -9,24 +9,30 @@
 
 typedef struct {
 	logic [2:0] altcmd;
-	logic [2:0] dircmd [1:0];
-	signed logic [15:0] rpm_sense [3:0];
-	signed logic [15:0] exp_mot_set [3:0];
-	signed logic [15:0] mot_set[3:0];
+	logic [1:0][2:0] dircmd;
+	logic signed [3:0][15:0] rpm_sense;
+	logic signed [3:0][15:0] exp_mot_set;
+	logic signed [3:0][15:0] mot_set;
 } test_t;
 
 class stimulus;
 
-const int WINDOW = 6; //Output needs to settle within plus or minus this RPM
+const logic signed [15:0] UPPER_WINDOW_LIMIT = 10; //Output needs to settle within plus or minus this RPM
+const logic signed [15:0] LOWER_WINDOW_LIMIT = -10;
 virtual drone_top_if drone_top_vif;
 
 function void set_vif (virtual drone_top_if drone_top_vif);
 	this.drone_top_vif = drone_top_vif; 
 endfunction
 
-task generateNormalTestCases(input ref test_t tests[$]);
-	//TODO: implement
-	tests.push_back('{3'b000, 3'b000, 3'b000, '{'0,'0,'0,'0}, '{16'h0BB8, 16'h0BB8, 16'h0BB8, 16'h0BB8}, '{'0,'0,'0,'0}});
+task generateNormalTestCases(ref test_t tests[$]);
+	//Given the motor_feedback module, the expected mot_set value is always zero.
+	//This is because motor_feedback will eventually cause rpm_sense to converge to the desired RPM,
+	//which causes the pidctrl module output to converge to 0.
+	
+	//This would not be true for other feedback models. We're going with this assumption though because
+	//that's what the mathematical model tells us.
+	tests.push_back('{3'b000, {3'b000, 3'b000}, {16'b0, 16'b0, 16'b0, 16'b0}, {16'h0, 16'h0, 16'h0, 16'h0}, {16'b0, 16'b0, 16'b0, 16'b0}});
 	
 endtask
 
@@ -48,19 +54,19 @@ task run;
 	
 	for(int i = 0; i < testsToRun.size(); i++) begin
 		test = testsToRun.pop_front();
+		$display("Testing altcmd=%b, dircmd[0]=%b, dircmd[1]=%b", test.altcmd, test.dircmd[0], test.dircmd[1]);
 		drone_top_vif.do_test(test.altcmd, test.dircmd, test.rpm_sense, test.mot_set);
 		failedCurrentTest = 0;
 		for(int j = 0; j < 4; j++) begin
-			assert(test.mot_set[j] < test.exp_mot_set[j] + WINDOW && test.mot_set[j] > test.exp_mot_set[j] - WINDOW)
-			else begin
-				$error("Test %d: Motor [%d] failed to settle. RPM=%d, %d < Expected < %d", i, j, test.mot_rpm[j], test.exp_mot_set[j] - WINDOW, test.exp_mot_set[j] + WINDOW);
+			if(($signed(test.mot_set[j]) > $signed(UPPER_WINDOW_LIMIT)) || ($signed(test.mot_set[j]) < $signed(LOWER_WINDOW_LIMIT))) begin
+				$error("Test %d: Motor [%d] failed to settle. RPM=%h, %h < Expected < %h", i, j, test.mot_set[j], LOWER_WINDOW_LIMIT, UPPER_WINDOW_LIMIT);
 				failedCurrentTest = 1;
 			end
 		end
 		if(failedCurrentTest) failedTests += 1;
 		totalTests++;
 	end
-	$display("Finished PWM Tests. Total fails: %d, total tests: %d", failedTests, totalTests);
+	$display("Finished Drone Top Tests. Total fails: %d, total tests: %d", failedTests, totalTests);
 endtask 
 
 endclass; 
@@ -79,4 +85,4 @@ initial
 
   end
 
-endmodule: drone_top_tb
+endmodule: drone_top_hvl

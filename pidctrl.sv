@@ -37,6 +37,7 @@ always_ff@(posedge clk) begin
 		
 		error <= rpm_set - rpm_sense;
 		mot_set <= error + (mot_set >>> 2);
+		
 	end
 			
 end

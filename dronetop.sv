@@ -1,13 +1,13 @@
-module dronectrl_top(clk, resetn, altcmd, dircmd, mot_set, rpm_sense);
-input clk, resetn;
-input [2:0] altcmd;
-input [2:0] dircmd [1:0];			// dircmd [0]->L&R, dircmd[1] F&Rv
-output [15:0] mot_set [3:0];		// motrpm [0]-> left motor, [1]-> right motor, [2]-> forward motor, [3]-> rear motor
-input shortint rpm_sense [3:0];	// follows same definition as motrpm
+module dronetop(clk, resetn, altcmd, dircmd, mot_set, rpm_sense);
+input logic clk, resetn;
+input logic [2:0] altcmd;
+input logic [2:0] dircmd [1:0];			// dircmd [0]->L&R, dircmd[1] F&Rv
+output logic signed [15:0] mot_set [3:0];		// motrpm [0]-> left motor, [1]-> right motor, [2]-> forward motor, [3]-> rear motor
+input logic signed [15:0] rpm_sense [3:0];	// follows same definition as motrpm
 
-wire [15:0] angle [3:0];
-wire [15:0] alt_rpm;
-wire [15:0] rpm_set [3:0];
+wire signed [15:0] angle [3:0];
+wire signed [15:0] alt_rpm;
+wire signed [15:0] rpm_set [3:0];
 
 
 dirctrl lrtcmd(.clk(clk), .resetn(resetn), .cmds(dircmd[0]), .left_frwd(angle[0]), .right_back(angle[1]));
