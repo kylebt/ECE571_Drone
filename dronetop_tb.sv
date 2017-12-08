@@ -11,6 +11,9 @@ logic [2:0] dircmd [1:0];
 shortint mot_set [3:0];
 shortint rpm_sense [3:0];
 
+bit set = 0;
+shortint rpm_set[4];
+
 // reg's for commands and target rpm values
 reg [11:0] cmdmem [LENMEM-1:0]; // altitude, L&Rt, F&Rv
 reg [11:0] cmdreg; 	// used for partial select of cmdmem
@@ -22,7 +25,14 @@ initial begin
 end
 
 dronectrl_top dt(.clk, .resetn, .altcmd, .dircmd(dircmd[1:0]), .mot_set(mot_set[3:0]), .rpm_sense(rpm_sense[3:0]));
-	
+
+genvar mf_index;
+generate
+	for(mf_index = 0; mf_index < 4; mf_index++) begin
+		motor_feedback mf0(.clk, .resetn, .set, .rpm_set(rpm_set[mf_index]), .mot_rpm(mot_set[mf_index]), .rpm_sense(rpm_sense[mf_index]));
+	end
+endgenerate
+
 initial begin
 	clk = 1'b0; // define clock state
 	forever #125 clk = ~clk; 	// 40kHz clk
@@ -46,64 +56,64 @@ initial begin	// get things initialized and reset
 	#500;
 end
 
-initial begin		// Left Motor--> 0, offset 0
-	rpm_sense[0] = 16'h0000;
-	forever begin
-			@(posedge clk) begin
-				cq[1] = cq[0];
-				xq[1] = xq[0];
-				xq[0] = mot_set[0]>>>3;	
-				cq[0] = xq[1] + cq[1];
-				if((rpm_sense[0] >= 16'h157c) && (rpm_sense[0] < 16'h8000)) rpm_sense[0] = 16'h157c;		// max rpm of motor
-				else if((rpm_sense[0] <= 16'h0000) && (rpm_sense[0] >= 16'h8000)) rpm_sense[0] = 16'h0000;	// don't allow the motor to run in reverse direction
-				else rpm_sense[0] = cq[0];
-			end	
-	end
-end
-
-initial begin		// Right Motor--> 1, offset 2
-	rpm_sense[1] = 16'h0000;
-	forever begin
-			@(posedge clk) begin
-				cq[2+1] = cq[2];
-				xq[2+1] = xq[2];
-				xq[2] = mot_set[1]>>>3;	
-				cq[2] = xq[2+1] + cq[2+1];
-				if((rpm_sense[1] >= 16'h157c) && (rpm_sense[1] < 16'h8000)) rpm_sense[1] = 16'h157c;		// max rpm of motor
-				else if((rpm_sense[1] <= 16'h0000) && (rpm_sense[1] >= 16'h8000)) rpm_sense[1] = 16'h0000;	// don't allow the motor to run in reverse direction
-				else rpm_sense[1] = cq[2];
-			end	
-	end
-end
-
-initial begin		// Forward Motor--> 2, offset 4
-	rpm_sense[2] = 16'h0000;
-	forever begin
-			@(posedge clk) begin
-				cq[4+1] = cq[4];
-				xq[4+1] = xq[4];
-				xq[4] = mot_set[2]>>>3;	
-				cq[4] = xq[4+1] + cq[4+1];
-				if((rpm_sense[2] >= 16'h157c) && (rpm_sense[2] < 16'h8000)) rpm_sense[2] = 16'h157c;		// max rpm of motor
-				else if((rpm_sense[2] <= 16'h0000) && (rpm_sense[2] >= 16'h8000)) rpm_sense[2] = 16'h0000;	// don't allow the motor to run in reverse direction
-				else rpm_sense[2] = cq[4];
-			end	
-	end
-end
-
-initial begin		// Reverse Motor--> 3, offset 6
-	forever begin
-			@(posedge clk) begin
-				cq[6+1] = cq[6];
-				xq[6+1] = xq[6];
-				xq[6] = mot_set[3]>>>3;	
-				cq[6] = xq[6+1] + cq[6+1];
-				if((rpm_sense[3] >= 16'h157c) && (rpm_sense[3] < 16'h8000)) rpm_sense[3] = 16'h157c;		// max rpm of motor
-				else if((rpm_sense[3] <= 16'h0000) && (rpm_sense[3] >= 16'h8000)) rpm_sense[3] = 16'h0000;	// don't allow the motor to run in reverse direction
-				else rpm_sense[3] = cq[6];
-			end	
-	end
-end
+//initial begin		// Left Motor--> 0, offset 0
+//	rpm_sense[0] = 16'h0000;
+//	forever begin
+//			@(posedge clk) begin
+//				cq[1] = cq[0];
+//				xq[1] = xq[0];
+//				xq[0] = mot_set[0]>>>3;	
+//				cq[0] = xq[1] + cq[1];
+//				if((rpm_sense[0] >= 16'h157c) && (rpm_sense[0] < 16'h8000)) rpm_sense[0] = 16'h157c;		// max rpm of motor
+//				else if((rpm_sense[0] <= 16'h0000) && (rpm_sense[0] >= 16'h8000)) rpm_sense[0] = 16'h0000;	// don't allow the motor to run in reverse direction
+//				else rpm_sense[0] = cq[0];
+//			end	
+//	end
+//end
+//
+//initial begin		// Right Motor--> 1, offset 2
+//	rpm_sense[1] = 16'h0000;
+//	forever begin
+//			@(posedge clk) begin
+//				cq[2+1] = cq[2];
+//				xq[2+1] = xq[2];
+//				xq[2] = mot_set[1]>>>3;	
+//				cq[2] = xq[2+1] + cq[2+1];
+//				if((rpm_sense[1] >= 16'h157c) && (rpm_sense[1] < 16'h8000)) rpm_sense[1] = 16'h157c;		// max rpm of motor
+//				else if((rpm_sense[1] <= 16'h0000) && (rpm_sense[1] >= 16'h8000)) rpm_sense[1] = 16'h0000;	// don't allow the motor to run in reverse direction
+//				else rpm_sense[1] = cq[2];
+//			end	
+//	end
+//end
+//
+//initial begin		// Forward Motor--> 2, offset 4
+//	rpm_sense[2] = 16'h0000;
+//	forever begin
+//			@(posedge clk) begin
+//				cq[4+1] = cq[4];
+//				xq[4+1] = xq[4];
+//				xq[4] = mot_set[2]>>>3;	
+//				cq[4] = xq[4+1] + cq[4+1];
+//				if((rpm_sense[2] >= 16'h157c) && (rpm_sense[2] < 16'h8000)) rpm_sense[2] = 16'h157c;		// max rpm of motor
+//				else if((rpm_sense[2] <= 16'h0000) && (rpm_sense[2] >= 16'h8000)) rpm_sense[2] = 16'h0000;	// don't allow the motor to run in reverse direction
+//				else rpm_sense[2] = cq[4];
+//			end	
+//	end
+//end
+//
+//initial begin		// Reverse Motor--> 3, offset 6
+//	forever begin
+//			@(posedge clk) begin
+//				cq[6+1] = cq[6];
+//				xq[6+1] = xq[6];
+//				xq[6] = mot_set[3]>>>3;	
+//				cq[6] = xq[6+1] + cq[6+1];
+//				if((rpm_sense[3] >= 16'h157c) && (rpm_sense[3] < 16'h8000)) rpm_sense[3] = 16'h157c;		// max rpm of motor
+//				else if((rpm_sense[3] <= 16'h0000) && (rpm_sense[3] >= 16'h8000)) rpm_sense[3] = 16'h0000;	// don't allow the motor to run in reverse direction
+//				else rpm_sense[3] = cq[6];
+//			end	
+//	end
+//end
 
 // this feeds commands into the controller
 // also compares motor rpm with a target rpm
@@ -123,7 +133,7 @@ initial begin
 		if((rpm_sense[3] > target[i][15:0]  + WINDOW) || (rpm_sense[3] < target[i][15:0]-WINDOW))  $display("*** Motor Rv  Failed *** rpm_sense[4]:%d, target:%d",rpm_sense[3], target[i][15:0]);
 		#6000;
 	end
-	
+	$stop();
 end
 	
 endmodule

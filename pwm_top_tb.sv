@@ -1,4 +1,5 @@
-// Sameer Ghewari, Portland State University, Feb 2015 
+// Sameer Ghewari, Portland State University, Feb 2015 : original BOOTH example
+// Kyle Thompson, Portland State University, Nov 2017 : modified to work with pwm module
 
 // TBX PWM Example - testing a PWM signal generator
 // This is the HVL testbench. Runs on the workstation. This is a very straightforward directed
